@@ -205,9 +205,12 @@ def get_transaction_history():
                     'entry_price': float(order.total_value_after_fees) / float(order.filled_size) if order.filled_size else None
                 }
 
+                # Fix: Remove the 'Z' from timestamp before parsing
+                created_time = order.created_time.replace('Z', '+00:00')
+                
                 # Only store if it's more recent than what we have
                 if base_currency not in latest_orders or \
-                   datetime.fromisoformat(order.created_time) > datetime.fromisoformat(latest_orders[base_currency]['created_time']):
+                   datetime.fromisoformat(created_time) > datetime.fromisoformat(latest_orders[base_currency]['created_time'].replace('Z', '+00:00')):
                     latest_orders[base_currency] = simplified_order
                     
             except AttributeError as e:
