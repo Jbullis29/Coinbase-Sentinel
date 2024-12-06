@@ -78,15 +78,25 @@ def execute_trade_actions(trade_actions):
                 print(f"Skipping zero amount trade: {action}")
                 continue
 
+            # Get current price for the trading pair
+            product_info = client.get_product(action['product_id'])
+            current_price = float(product_info['price'])
+            
             # Extract details from the trade action
             product_id = str(action['product_id'])
             side = str(action['side'])
             base_currency = product_id.split('-')[0]  # First part (e.g., 'SHIB' from 'SHIB-USD')
             quote_currency = product_id.split('-')[1]  # Second part (e.g., 'USD' from 'SHIB-USD')
-            amount_coin = round(float(action['amount_coin']), 6)
+            
+            # Convert USD amount to coin amount for sells
+            if side.upper() == 'SELL':
+                usd_amount = float(action['amount_coin'])
+                amount_coin = round(usd_amount / current_price, 6)
+            else:
+                amount_coin = round(float(action['amount_coin']), 6)
 
             # Debug print
-            print(f"Processing trade: {product_id} {side} {amount_coin}")
+            print(f"Processing trade: {product_id} {side} {amount_coin} coins (Price: {current_price})")
 
             # Check if required currencies exist in balances
             if side.upper() == 'SELL':
