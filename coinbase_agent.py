@@ -426,7 +426,7 @@ def main():
         
         log_file = os.path.join(log_dir, f"ai_response_{timestamp}.json")
         with open(log_file, "w") as f:
-            json.dump(log_entry, indent=2, default=str)
+            json.dump(log_entry, f, indent=2, default=str)
         
         # Print the explanation first
         print("\nAI Analysis:")
