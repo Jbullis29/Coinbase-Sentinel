@@ -35,7 +35,14 @@ def extract_trade_actions(response):
         json_data = json_section.group(1)
         try:
             trade_actions = json.loads(json_data)
-            return trade_actions, explanation
+            # Handle both direct list and nested dictionary with 'actions' key
+            if isinstance(trade_actions, dict) and 'actions' in trade_actions:
+                return trade_actions['actions'], explanation
+            elif isinstance(trade_actions, list):
+                return trade_actions, explanation
+            else:
+                print("Unexpected trade actions format")
+                return [], explanation
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON: {e}")
             return [], explanation
@@ -70,56 +77,59 @@ def execute_trade_actions(trade_actions):
                 continue
                 
             # Validate required fields
-            required_fields = ['product_id', 'side', 'amount_coin']
+            required_fields = ['product_id', 'side', 'amount']
             if not all(field in action for field in required_fields):
                 print(f"Error: Missing required fields in trade action: {action}")
                 continue
 
             # Skip invalid zero amount trades
-            if float(action['amount_coin']) <= 0:
+            if float(action['amount']) <= 0:
                 print(f"Skipping zero amount trade: {action}")
                 continue
 
             # Get current price for the trading pair
-            product_info = client.get_product(action['product_id'])
+            product_info = client.get_product(action['product_id']).to_dict()
             current_price = float(product_info['price'])
             
             # Extract details from the trade action
             product_id = str(action['product_id'])
             side = str(action['side'])
-            base_currency = product_id.split('-')[0]  # First part (e.g., 'SHIB' from 'SHIB-USD')
-            quote_currency = product_id.split('-')[1]  # Second part (e.g., 'USD' from 'SHIB-USD')
+            base_currency = product_id.split('-')[0]
+            quote_currency = product_id.split('-')[1]
             
-            # Convert USD amount to coin amount for sells
+            # For both SELL and BUY orders, amount represents USD value
+            usd_amount = float(action['amount'])
+            
             if side.upper() == 'SELL':
-                usd_amount = float(action['amount_coin'])
-                # Round to 6 decimal places for the calculation, then to 2 for the actual amount
-                amount_coin = round(round(usd_amount / current_price, 6), 2)
-            else:
-                amount_coin = round(float(action['amount_coin']), 2)
+                # Convert USD amount to coin amount for sells
+                amount = usd_amount / current_price
+                # Get the base increment from product info to determine proper rounding
+                base_increment = product_info.get('base_increment', '0.01')
+                decimal_places = len(str(float(base_increment)).split('.')[-1])
+                amount = round(amount, decimal_places)
+            else:  # BUY
+                amount = round(usd_amount, 2)  # Round USD amount for buys
 
             # Debug print
-            print(f"Processing trade: {product_id} {side} {amount_coin} coins (Price: {current_price})")
+            print(f"Processing trade: {product_id} {side} {amount} coins (Price: {current_price})")
 
             # Check if required currencies exist in balances
             if side.upper() == 'SELL':
-                # For sells, we need the base currency (e.g., SHIB)
                 if base_currency not in balances:
                     print(f"No {base_currency} balance found. Available currencies: {list(balances.keys())}")
                     continue
             else:  # BUY
-                # For buys, we only need the quote currency (e.g., USD)
                 if quote_currency not in balances:
                     print(f"No {quote_currency} balance found. Available currencies: {list(balances.keys())}")
                     continue
 
             # Check if we have sufficient balance before trading
             if side.upper() == 'SELL':
-                if balances[base_currency] < amount_coin:
+                if balances[base_currency] < amount:
                     print(f"Insufficient {base_currency} balance ({balances[base_currency]}) for trade: {action}")
                     continue
             else:  # BUY
-                if balances[quote_currency] < amount_coin:
+                if balances[quote_currency] < amount:
                     print(f"Insufficient {quote_currency} balance ({balances[quote_currency]}) for trade: {action}")
                     continue
 
@@ -132,14 +142,14 @@ def execute_trade_actions(trade_actions):
                     client_order_id=client_order_id,
                     product_id=product_id,
                     side=side.upper(),
-                    quote_size=str(round(amount_coin, 2)),
+                    quote_size=str(round(amount, 2)),
                 )
             else:  # SELL
                 response = client.market_order(
                     client_order_id=client_order_id,
                     product_id=product_id,
                     side=side.upper(),
-                    base_size=str(amount_coin),
+                    base_size=str(amount),
                 )
 
             print(f"Executed trade: {response}")
@@ -376,32 +386,23 @@ def main():
                     - Consider 1% total trading fees (0.5% buy + 0.5% sell)
                     - Do NOT suggest buying a coin if it already has a non-zero balance
                     
-                    Trading Strategy:
-                    1. Review transaction history to identify entry prices
-                    2. Compare current market prices against entry prices
-                    3. Only suggest SELL orders when profitable after fees
-                    4. Look for good entry points for BUY orders
-                    5. It's okay to suggest no trades if conditions aren't favorable
+                    AMOUNT SPECIFICATION:\n"
+                    "- For SELL orders: 'amount' should be the USD VALUE you want to sell (e.g., {\"amount\": 100} means sell $100 worth of the cryptocurrency)\n"
+                    "- For BUY orders: 'amount' should be the USD amount to spend\n"
+                    "\n"
+                    "Example for SELL order:\n"
+                    "If BTC is at $50,000 and you want to sell $100 worth of BTC:\n"
+                    "{\"product_id\": \"BTC-USD\", \"side\": \"SELL\", \"amount\": 100.00}\n"
+                    "\n"
+                    "Example for BUY order:\n"
+                    "If you want to spend $100 to buy BTC:\n"
+                    "{\"product_id\": \"BTC-USDC\", \"side\": \"BUY\", \"amount\": 100.00}\n"
                     
                     Response Format:
                     First, explain your analysis and reasoning.
-                    Then provide trade actions in JSON format:
+                    Then provide trade actions in JSON format.
                     
-                    Example response:
-                    Based on the analysis of BTC:
-                    - Current price: $50,000
-                    - Entry price: $45,000
-                    - Profit after fees: 10%
-                    Recommending sell due to profitable position.
-                    
-                    ```json
-                    [
-                        {"product_id": "BTC-USD", "side": "SELL", "amount_coin": 100.00}
-                    ]
-                    ```
-                    
-                    IMPORTANT: For SELL orders, specify the amount in USD value you want to sell, not the coin amount.
-                    CRITICAL: SELL orders must use -USD pairs (e.g., BTC-USD), while BUY orders use -USDC pairs."""
+                    REMEMBER: ALL AMOUNTS ARE IN USD VALUE, NOT COIN QUANTITIES!"""
             },
             {
                 "role": "user",
