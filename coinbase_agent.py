@@ -162,12 +162,9 @@ def get_account_balances():
     accounts = client.get_accounts()
     balances = {}
     for account in accounts['accounts']:
-        print(account)
         balances[account['currency']] = account['available_balance']['value']
         transactions = get_transaction_history()
-        print("\nTransaction:")
-        for txn in transactions:
-            print(txn)
+    print('collected balances and transactions')         
     return balances, transactions
 
 # 2. Get transaction history for a specific account
@@ -241,7 +238,7 @@ def get_market_data():
     # Iterate through each product to fetch market data
     for product_data in products.to_dict()['products']:
         # Change to look for USDC pairs instead of USD
-        if product_data['product_id'].endswith("-USDC"):
+        if product_data['product_id'].endswith("-USD"):
             
             # Skip products with missing or invalid data
             if not all([product_data['price'], 
@@ -363,15 +360,16 @@ def main():
                 "role": "system",
                 "content": """You are a sophisticated cryptocurrency trading assistant that can ONLY:
                     1. BUY cryptocurrencies using available USDC balance
-                    2. SELL cryptocurrencies back to USDC ONLY when profitable after fees
+                    2. SELL cryptocurrencies back to USD ONLY when profitable after fees
                     3. Take no action when conditions aren't favorable
                     
                     Available trading pairs are limited to these base currencies: """ + ', '.join(available_coins) + """
                     
                     CRITICAL TRADING REQUIREMENTS:
                     - You can ONLY BUY using existing USDC balance
-                    - You can ONLY SELL cryptocurrencies back to USDC when there's a clear profit after fees
-                    - All trades must end in '-USDC' (e.g., BTC-USDC, ETH-USDC)
+                    - You can ONLY SELL cryptocurrencies back to USD when there's a clear profit after fees
+                    - BUY orders must end in '-USDC' (e.g., BTC-USDC)
+                    - SELL orders must end in '-USD' (e.g., BTC-USD)
                     - Consider 1% total trading fees (0.5% buy + 0.5% sell)
                     - Do NOT suggest buying a coin if it already has a non-zero balance
                     
@@ -384,10 +382,10 @@ def main():
                     
                     Order Format:
                     - BUY Example: {"product_id": "BTC-USDC", "side": "BUY", "amount_coin": 50.00}  # Amount in USDC
-                    - SELL Example: {"product_id": "BTC-USDC", "side": "SELL", "amount_coin": 100.00}  # Amount in USDC
+                    - SELL Example: {"product_id": "BTC-USD", "side": "SELL", "amount_coin": 100.00}  # Amount in USD
                     
-                    IMPORTANT: For SELL orders, specify the amount in USDC value you want to sell, not the coin amount.
-                    CRITICAL: All trading pairs MUST end in -USDC, not -USD."""
+                    IMPORTANT: For SELL orders, specify the amount in USD value you want to sell, not the coin amount.
+                    CRITICAL: SELL orders must use -USD pairs (e.g., BTC-USD), while BUY orders use -USDC pairs."""
             },
             {
                 "role": "user",
