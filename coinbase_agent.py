@@ -11,35 +11,37 @@ import requests
 
 def extract_trade_actions(response):
     """
-    Extract trade actions JSON from the assistant's response.
+    Extract trade actions JSON and explanation from the assistant's response.
     
     Args:
         response (object): The ChatCompletion response object.
     
     Returns:
-        list: A list of trade actions extracted from the JSON, or an empty list if none found.
+        tuple: (list of trade actions, explanation string)
     """
-    # Extract the content of the assistant's message
     try:
         content = response.to_dict()['choices'][0]['message']['content']
     except (KeyError, IndexError) as e:
         print(f"Error accessing response content: {e}")
-        return []
+        return [], ""
     
-    # Use regex to locate the JSON section
+    # Extract the JSON section
     json_section = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
+    
+    # Get the explanation (everything before the JSON)
+    explanation = content.split("```json")[0].strip() if "```json" in content else ""
+    
     if json_section:
-        json_data = json_section.group(1)  # Extract the JSON block
+        json_data = json_section.group(1)
         try:
-            # Parse the JSON into a Python object
             trade_actions = json.loads(json_data)
-            return trade_actions
+            return trade_actions, explanation
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON: {e}")
-            return []
+            return [], explanation
     else:
         print("No JSON section found in the response content.")
-        return []
+        return [], explanation
 
 
     
@@ -91,9 +93,10 @@ def execute_trade_actions(trade_actions):
             # Convert USD amount to coin amount for sells
             if side.upper() == 'SELL':
                 usd_amount = float(action['amount_coin'])
-                amount_coin = round(usd_amount / current_price, 6)
+                # Round to 6 decimal places for the calculation, then to 2 for the actual amount
+                amount_coin = round(round(usd_amount / current_price, 6), 2)
             else:
-                amount_coin = round(float(action['amount_coin']), 6)
+                amount_coin = round(float(action['amount_coin']), 2)
 
             # Debug print
             print(f"Processing trade: {product_id} {side} {amount_coin} coins (Price: {current_price})")
@@ -380,25 +383,48 @@ def main():
                     4. Look for good entry points for BUY orders
                     5. It's okay to suggest no trades if conditions aren't favorable
                     
-                    Order Format:
-                    - BUY Example: {"product_id": "BTC-USDC", "side": "BUY", "amount_coin": 50.00}  # Amount in USDC
-                    - SELL Example: {"product_id": "BTC-USD", "side": "SELL", "amount_coin": 100.00}  # Amount in USD
+                    Response Format:
+                    First, explain your analysis and reasoning.
+                    Then provide trade actions in JSON format:
+                    
+                    Example response:
+                    Based on the analysis of BTC:
+                    - Current price: $50,000
+                    - Entry price: $45,000
+                    - Profit after fees: 10%
+                    Recommending sell due to profitable position.
+                    
+                    ```json
+                    [
+                        {"product_id": "BTC-USD", "side": "SELL", "amount_coin": 100.00}
+                    ]
+                    ```
                     
                     IMPORTANT: For SELL orders, specify the amount in USD value you want to sell, not the coin amount.
                     CRITICAL: SELL orders must use -USD pairs (e.g., BTC-USD), while BUY orders use -USDC pairs."""
             },
             {
                 "role": "user",
-                "content": "Analyze the following data and return a JSON array of trade actions ONLY if you see favorable opportunities. "
+                "content": "Analyze the following data and explain your reasoning before providing any trade actions. "
                     "Remember: The balances shown only include non-zero amounts.\n\n"
                     f"Current portfolio and market data: {json.dumps(data_package)}"
             }
-        ]
-    )
-        trade_actions = extract_trade_actions(response)
-        print(trade_actions)
+        ])
         
-        execute_trade_actions(trade_actions)
+        trade_actions, explanation = extract_trade_actions(response)
+        
+        # Print the explanation first
+        print("\nAI Analysis:")
+        print(explanation)
+        
+        # Print and execute any trade actions
+        if trade_actions:
+            print("\nProposed Trade Actions:")
+            print(trade_actions)
+            execute_trade_actions(trade_actions)
+        else:
+            print("\nNo trade actions recommended.")
+            
         time.sleep(1800)
         
     
