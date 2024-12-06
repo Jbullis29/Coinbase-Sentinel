@@ -413,6 +413,21 @@ def main():
         
         trade_actions, explanation = extract_trade_actions(response)
         
+        # Log the AI response
+        log_dir = "ai_logs"
+        os.makedirs(log_dir, exist_ok=True)
+        
+        log_entry = {
+            "timestamp": timestamp,
+            "explanation": explanation,
+            "trade_actions": trade_actions,
+            "full_response": response.model_dump()
+        }
+        
+        log_file = os.path.join(log_dir, f"ai_response_{timestamp}.json")
+        with open(log_file, "w") as f:
+            json.dump(log_entry, indent=2, default=str)
+        
         # Print the explanation first
         print("\nAI Analysis:")
         print(explanation)
