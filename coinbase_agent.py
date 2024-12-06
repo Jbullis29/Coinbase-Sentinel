@@ -240,8 +240,8 @@ def get_market_data():
     
     # Iterate through each product to fetch market data
     for product_data in products.to_dict()['products']:
-        # Only process USD pairs (avoid duplicate USDC pairs)
-        if product_data['product_id'].endswith("-USD"):
+        # Change to look for USDC pairs instead of USD
+        if product_data['product_id'].endswith("-USDC"):
             
             # Skip products with missing or invalid data
             if not all([product_data['price'], 
@@ -383,8 +383,11 @@ def main():
                     5. It's okay to suggest no trades if conditions aren't favorable
                     
                     Order Format:
-                    - BUY Example: {"product_id": "BTC-USDC", "side": "BUY", "amount_coin": 50.00}
-                    - SELL Example: {"product_id": "BTC-USDC", "side": "SELL", "amount_coin": 0.001234}"""
+                    - BUY Example: {"product_id": "BTC-USDC", "side": "BUY", "amount_coin": 50.00}  # Amount in USDC
+                    - SELL Example: {"product_id": "BTC-USDC", "side": "SELL", "amount_coin": 100.00}  # Amount in USDC
+                    
+                    IMPORTANT: For SELL orders, specify the amount in USDC value you want to sell, not the coin amount.
+                    CRITICAL: All trading pairs MUST end in -USDC, not -USD."""
             },
             {
                 "role": "user",
