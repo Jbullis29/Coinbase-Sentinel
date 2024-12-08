@@ -20,7 +20,10 @@ def extract_trade_actions(response):
         tuple: (list of trade actions, explanation string)
     """
     try:
-        content = response.to_dict()['choices'][0]['message']['content']
+        content = response.choices[0].message.content
+        print("\nRaw AI Response:")
+        print(content)  # Debug print to see full response
+        
     except (KeyError, IndexError) as e:
         print(f"Error accessing response content: {e}")
         return [], ""
@@ -35,19 +38,27 @@ def extract_trade_actions(response):
         json_data = json_section.group(1)
         try:
             trade_actions = json.loads(json_data)
-            # Handle both direct list and nested dictionary with 'actions' key
-            if isinstance(trade_actions, dict) and 'actions' in trade_actions:
-                return trade_actions['actions'], explanation
-            elif isinstance(trade_actions, list):
-                return trade_actions, explanation
-            else:
-                print("Unexpected trade actions format")
-                return [], explanation
+            print("\nExtracted Trade Actions:")
+            print(json.dumps(trade_actions, indent=2))  # Debug print
+            return trade_actions, explanation
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON: {e}")
+            print("Problematic JSON data:", json_data)  # Debug print
             return [], explanation
     else:
         print("No JSON section found in the response content.")
+        # Try alternative JSON format without code blocks
+        try:
+            # Look for array of trade actions in the content
+            json_match = re.search(r"\[.*\]", content, re.DOTALL)
+            if json_match:
+                trade_actions = json.loads(json_match.group(0))
+                print("\nExtracted Trade Actions (alternative format):")
+                print(json.dumps(trade_actions, indent=2))  # Debug print
+                return trade_actions, explanation
+        except Exception as e:
+            print(f"Failed to parse alternative JSON format: {e}")
+        
         return [], explanation
 
 
@@ -71,6 +82,11 @@ def execute_trade_actions(trade_actions):
 
     for action in trade_actions:
         try:
+            # Skip MOG Coin sells
+            if 'MOG-' in action['product_id'] and action['side'].upper() == 'SELL':
+                print("Skipping MOG Coin sell - protected asset")
+                continue
+
             # Validate action format
             if not isinstance(action, dict):
                 print(f"Error: Invalid trade action format: {action}")
@@ -97,64 +113,44 @@ def execute_trade_actions(trade_actions):
             base_currency = product_id.split('-')[0]
             quote_currency = product_id.split('-')[1]
             
-            # For both SELL and BUY orders, amount represents USD value
-            usd_amount = float(action['amount'])
-            
-            if side.upper() == 'SELL':
-                # Convert USD amount to coin amount for sells
-                amount = usd_amount / current_price
-                # Get the base increment from product info to determine proper rounding
-                base_increment = product_info.get('base_increment', '0.01')
-                decimal_places = len(str(float(base_increment)).split('.')[-1])
-                amount = round(amount, decimal_places)
-            else:  # BUY
-                amount = round(usd_amount, 2)  # Round USD amount for buys
+            # For SELL orders, amount is in coin units
+            # For BUY orders, amount is in USD
+            amount = float(action['amount'])
 
             # Debug print
-            print(f"Processing trade: {product_id} {side} {amount} coins (Price: {current_price})")
+            print(f"Processing trade: {product_id} {side} {amount} {'coins' if side.upper() == 'SELL' else 'USD'} (Price: {current_price})")
 
-            # Check if required currencies exist in balances
+            # Check balances and execute trade
             if side.upper() == 'SELL':
                 if base_currency not in balances:
                     print(f"No {base_currency} balance found. Available currencies: {list(balances.keys())}")
                     continue
+                if balances[base_currency] < amount:
+                    print(f"Insufficient {base_currency} balance ({balances[base_currency]}) for trade: {action}")
+                    continue
+                response = client.market_order(
+                    client_order_id=str(uuid.uuid4()),
+                    product_id=product_id,
+                    side='SELL',
+                    base_size=str(amount)
+                )
             else:  # BUY
                 if quote_currency not in balances:
                     print(f"No {quote_currency} balance found. Available currencies: {list(balances.keys())}")
                     continue
-
-            # Check if we have sufficient balance before trading
-            if side.upper() == 'SELL':
-                if balances[base_currency] < amount:
-                    print(f"Insufficient {base_currency} balance ({balances[base_currency]}) for trade: {action}")
-                    continue
-            else:  # BUY
                 if balances[quote_currency] < amount:
                     print(f"Insufficient {quote_currency} balance ({balances[quote_currency]}) for trade: {action}")
                     continue
-
-            # Generate a unique client_order_id
-            client_order_id = str(uuid.uuid4())
-
-            # Execute the trade
-            if side.upper() == 'BUY':
                 response = client.market_order(
-                    client_order_id=client_order_id,
+                    client_order_id=str(uuid.uuid4()),
                     product_id=product_id,
-                    side=side.upper(),
-                    quote_size=str(round(amount, 2)),
-                )
-            else:  # SELL
-                response = client.market_order(
-                    client_order_id=client_order_id,
-                    product_id=product_id,
-                    side=side.upper(),
-                    base_size=str(amount),
+                    side='BUY',
+                    quote_size=str(amount)
                 )
 
             print(f"Executed trade: {response}")
             
-            # Get fresh balances after each trade
+            # Update balances after trade
             accounts = client.get_accounts()
             balances = {}
             for account in accounts['accounts']:
@@ -342,108 +338,193 @@ def extract_available_coins(market_data):
         available_coins.add(base_currency)
     return list(available_coins)
 
-# Main function to gather all the data
-def main():
-    while True:
-        # Create timestamp first
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Get balances and transaction history with entry prices
-        balances, transactions = get_account_balances()
-        
-        # Get market data and extract available coins
-        market_data, _ = get_market_data()
-        available_coins = extract_available_coins(market_data)
-        
-        # Enhance data package with entry prices
-        data_package = {
-            'balances': balances,
-            'transactions': transactions,  # Now includes entry prices
-            'market_data': market_data,
-            'available_coins': available_coins
-        }
-
-        # Send data to OpenAI
-        openai_client = OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY"))
-        response = openai_client.chat.completions.create(
+def get_market_analysis(data_package):
+    """
+    First agent analyzes the market and provides recommendations without JSON
+    """
+    openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
-                "content": """You are a sophisticated cryptocurrency trading assistant that can ONLY:
-                    1. BUY cryptocurrencies using available USDC balance
-                    2. SELL cryptocurrencies back to USD ONLY when profitable after fees
-                    3. Take no action when conditions aren't favorable
+                "content": """You are an aggressive day-trading cryptocurrency analyst focused on maximizing 24-hour profits. 
+                    Your goal is to analyze market conditions and recommend trading opportunities.
+
+                    ANALYSIS REQUIREMENTS:
+                    1. MOG Coin is OFF LIMITS - never recommend selling it
+                    2. Analyze current market conditions
+                    3. Compare current prices against entry prices
+                    4. Consider 1% trading fees in recommendations
+                    5. Look for both selling and buying opportunities
                     
-                    Available trading pairs are limited to these base currencies: """ + ', '.join(available_coins) + """
+                    RESPONSE FORMAT:
+                    1. Market Overview
+                    2. Specific Trading Recommendations
+                    3. Profit/Loss Analysis for each recommendation
+                    4. Risk Assessment
                     
-                    CRITICAL TRADING REQUIREMENTS:
-                    - You can ONLY BUY using existing USDC balance
-                    - You can ONLY SELL cryptocurrencies back to USD when there's a clear profit after fees
-                    - BUY orders must end in '-USDC' (e.g., BTC-USDC)
-                    - SELL orders must end in '-USD' (e.g., BTC-USD)
-                    - Consider 1% total trading fees (0.5% buy + 0.5% sell)
-                    - Do NOT suggest buying a coin if it already has a non-zero balance
-                    
-                    AMOUNT SPECIFICATION:\n"
-                    "- For SELL orders: 'amount' should be the USD VALUE you want to sell (e.g., {\"amount\": 100} means sell $100 worth of the cryptocurrency)\n"
-                    "- For BUY orders: 'amount' should be the USD amount to spend\n"
-                    "\n"
-                    "Example for SELL order:\n"
-                    "If BTC is at $50,000 and you want to sell $100 worth of BTC:\n"
-                    "{\"product_id\": \"BTC-USD\", \"side\": \"SELL\", \"amount\": 100.00}\n"
-                    "\n"
-                    "Example for BUY order:\n"
-                    "If you want to spend $100 to buy BTC:\n"
-                    "{\"product_id\": \"BTC-USDC\", \"side\": \"BUY\", \"amount\": 100.00}\n"
-                    
-                    Response Format:
-                    First, explain your analysis and reasoning.
-                    Then provide trade actions in JSON format.
-                    
-                    REMEMBER: ALL AMOUNTS ARE IN USD VALUE, NOT COIN QUANTITIES!"""
+                    DO NOT include any JSON or code blocks. Simply explain your analysis and recommendations in clear text."""
             },
             {
                 "role": "user",
-                "content": "Analyze the following data and explain your reasoning before providing any trade actions. "
-                    "Remember: The balances shown only include non-zero amounts.\n\n"
-                    f"Current portfolio and market data: {json.dumps(data_package)}"
+                "content": f"Analyze the following market data and provide trading recommendations:\n\n{json.dumps(data_package, indent=2)}"
             }
-        ])
-        
-        trade_actions, explanation = extract_trade_actions(response)
-        
-        # Log the AI response
-        log_dir = "ai_logs"
-        os.makedirs(log_dir, exist_ok=True)
-        
-        log_entry = {
-            "timestamp": timestamp,
-            "explanation": explanation,
-            "trade_actions": trade_actions,
-            "full_response": response.model_dump()
-        }
-        
-        log_file = os.path.join(log_dir, f"ai_response_{timestamp}.json")
-        with open(log_file, "w") as f:
-            json.dump(log_entry, f, indent=2, default=str)
-        
-        # Print the explanation first
-        print("\nAI Analysis:")
-        print(explanation)
-        
-        # Print and execute any trade actions
-        if trade_actions:
-            print("\nProposed Trade Actions:")
-            print(trade_actions)
-            execute_trade_actions(trade_actions)
-        else:
-            print("\nNo trade actions recommended.")
-            
-        time.sleep(1800)
-        
+        ]
+    )
     
+    try:
+        analysis = response.choices[0].message.content
+        print("\nMarket Analysis:")
+        print(analysis)
+        return analysis
+    except Exception as e:
+        print(f"Error getting market analysis: {e}")
+        return ""
+
+def validate_and_create_actions(market_analysis, balances, market_data):
+    """
+    Second agent validates analysis and creates specific trade actions
+    """
+    validation_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    
+    validation_data = {
+        "market_analysis": market_analysis,
+        "current_balances": balances,
+        "market_data": market_data
+    }
+    
+    response = validation_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are a cryptocurrency trade validator and action creator. Your job is to:
+                    1. Review the market analysis
+                    2. Validate recommendations against current balances
+                    3. Create specific trade actions in the correct format
+
+                    TRADE SIZE REQUIREMENTS:
+                    1. Minimum trade size: $25 USD equivalent
+                    2. For SELL orders: Use a significant portion (50-100%) of available coins
+                    3. For BUY orders: Use at least $25 USD, up to available balance
+                    4. Never create trades smaller than $25 USD equivalent
+                    5. When flipping positions, sell entire position (100%) to maximize efficiency
+
+                    VALIDATION REQUIREMENTS:
+                    1. Ensure sufficient balances exist for each trade
+                    2. Verify MOG Coin is never sold
+                    3. Calculate USD value of all trades before approving
+                    4. Check that sequential trades maintain valid balances
+                    5. For SELL orders: amount must be in coin units (use most of available balance)
+                    6. For BUY orders: amount must be in USD (minimum $25)
+                    
+                    YOU MUST RESPOND WITH:
+                    1. Validation Analysis (text explanation)
+                    2. Trade Actions in this exact JSON format:                    ```json
+                    [
+                        {
+                            "product_id": "BTC-USD",
+                            "side": "SELL",
+                            "amount": 0.05
+                        }
+                    ]                    ```
+
+                    EXAMPLE TRADES:
+                    - SELL: If balance is 100 DOGE, sell 95-100 DOGE
+                    - Never create trades worth less than $25 USD equivalent
+                    """
+            },
+            {
+                "role": "user",
+                "content": f"Please validate this analysis and create trade actions. Remember to use significant portions of available balance for trades:\n\n{json.dumps(validation_data, indent=2)}"
+            }
+        ]
+    )
+    
+    try:
+        content = response.choices[0].message.content
+        print("\nValidation Response:")
+        print(content)
+        
+        # Extract JSON section
+        json_section = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
+        if not json_section:
+            print("No trade actions found in validation response")
+            return [], content
+            
+        trade_actions = json.loads(json_section.group(1))
+        explanation = content.split("```json")[0].strip()
+        
+        # Validate minimum trade sizes
+        validated_actions = []
+        for action in trade_actions:
+            try:
+                # Get current price for the trading pair
+                product_info = client.get_product(action['product_id']).to_dict()
+                current_price = float(product_info['price'])
+                
+                # Calculate USD value of trade
+                if action['side'].upper() == 'SELL':
+                    usd_value = float(action['amount']) * current_price
+                else:
+                    usd_value = float(action['amount'])
+                
+                # Only include trades worth at least $25
+                if usd_value >= 25:
+                    validated_actions.append(action)
+                else:
+                    print(f"Skipping small trade worth ${usd_value:.2f} USD")
+            except Exception as e:
+                print(f"Error validating trade size: {e}")
+                continue
+        
+        return validated_actions, explanation
+        
+    except Exception as e:
+        print(f"Error in validation: {e}")
+        return [], f"Validation failed: {str(e)}"
+
+def main():
+    while True:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Get market data and balances
+        balances, transactions = get_account_balances()
+        market_data, _ = get_market_data()
+        available_coins = extract_available_coins(market_data)
+        
+        data_package = {
+            'balances': balances,
+            'transactions': transactions,
+            'market_data': market_data,
+            'available_coins': available_coins
+        }
+
+        # Get market analysis from first agent
+        market_analysis = get_market_analysis(data_package)
+        
+        # Get trade actions from second agent
+        if market_analysis:
+            trade_actions, validation_explanation = validate_and_create_actions(
+                market_analysis,
+                balances,
+                market_data
+            )
+            
+            print("\nValidation Explanation:")
+            print(validation_explanation)
+            
+            if trade_actions:
+                print("\nExecuting Validated Trades:")
+                execute_trade_actions(trade_actions)
+            else:
+                print("\nNo trades to execute")
+        else:
+            print("\nNo market analysis available")
+            
+        time.sleep(3600)
+
 # Run the script
 if __name__ == '__main__':
     main()
