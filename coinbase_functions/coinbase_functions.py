@@ -18,12 +18,21 @@ def get_account_balances():
     # Get transactions first
     transactions = get_transaction_history()
     
-    # Get market data for portfolio coins
-    market_data, _ = get_portfolio_market_data()
-    market_data_by_currency = {
-        product['symbol'].split('-')[0]: product 
-        for product in market_data
-    }
+    # Get market data for portfolio coins without candles
+    market_data = client.get_products()
+    market_data_by_currency = {}
+    
+    # Filter market data for USD pairs and create lookup dictionary
+    for product in market_data.to_dict()['products']:
+        if product['product_id'].endswith("-USD"):
+            base_currency = product['product_id'].split('-')[0]
+            if product['price']:  # Only include if price exists
+                market_data_by_currency[base_currency] = {
+                    'symbol': product['product_id'],
+                    'price': float(product['price']),
+                    'change_24h': float(product['price_percentage_change_24h']) if product['price_percentage_change_24h'] else None,
+                    'status': product['status']
+                }
     
     # Create a mapping of transactions by currency
     transactions_by_currency = {}
@@ -55,16 +64,22 @@ def get_account_balances():
             # Calculate USD value
             usd_value = float(balance) * current_price if current_price else None
             
+            # Get candle data for the currency
+            candle_data = []
+            if market_info:  # Only get candles if we have market info
+                symbol = market_info['symbol']
+                candle_data = get_candles_public(symbol)
+            
             balances[currency] = {
                 'coin_amount': balance,
                 'usd_value': usd_value,
                 'entry_price': entry_price,
                 'current_price': current_price,
                 'market_data': market_info,
-                'transactions': currency_transactions
+                'transactions': currency_transactions,
+                'candle_data': candle_data  # Add candle data to the response
             }
             
-    print('collected balances, transactions, and market data')         
     return balances
 
 # 2. Get transaction history for a specific account
