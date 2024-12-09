@@ -36,8 +36,13 @@ def get_account_balances():
     # Build balances with transactions and market data
     for account in accounts['accounts']:
         currency = account['currency']
-        balance = account['available_balance']['value']
-        if float(balance) > 0:  # Only include non-zero balances
+        balance = float(account['available_balance']['value'])
+        
+        # Only include balances that are greater than 0.000001 (6 decimal places)
+        if balance > 0.000001:  
+            # Round the balance to 6 decimal places
+            balance = round(balance, 6)
+            
             # Get latest transaction for entry price
             currency_transactions = transactions_by_currency.get(currency, [])
             latest_transaction = currency_transactions[0] if currency_transactions else None
@@ -255,58 +260,105 @@ def get_candles_public(product):
 def execute_trade_actions(trade_actions):
     """
     Execute trade actions using the provided market_order function.
-    All amounts from the agent are in USD:
-        - For SELL: Convert USD amount to base_size (crypto amount)
-        - For BUY: Use USD amount directly as quote_size
+    For SELL orders: Sells entire available balance
+    For BUY orders: Uses specified USD amount
     """
-    for action in trade_actions:
+    results = []
+    
+    if not trade_actions:
+        print("No trade actions provided")
+        return results
+        
+    print(f"Attempting to execute {len(trade_actions)} trades...")
+    
+    # Get current account balances first
+    accounts = client.get_accounts()
+    balance_map = {
+        account['currency']: float(account['available_balance']['value'])
+        for account in accounts['accounts']
+    }
+    
+    for index, action in enumerate(trade_actions, 1):
+        print(f"\nProcessing trade {index} of {len(trade_actions)}:")
+        print(f"Action details: {json.dumps(action, indent=2)}")
+        
         try:
             product_id = str(action['product_id'])
             side = str(action['side'])
-            usd_amount = float(action['amount'])
+            base_currency = product_id.split('-')[0]  # e.g., 'BTC' from 'BTC-USD'
 
             if side.upper() == 'SELL':
-                # For SELL: Need to convert USD amount to crypto amount
-                product = client.get_product(product_id)
-                current_price = float(product.price)
-                crypto_amount = usd_amount / current_price
-                
-                # Get base_increment and determine decimal places
-                base_increment = float(product.base_increment)
-                
-                # Round to the nearest increment
-                crypto_amount = round(crypto_amount / base_increment) * base_increment
-                
-                # Convert to string with appropriate precision
-                crypto_amount_str = '{:.10f}'.format(crypto_amount).rstrip('0').rstrip('.')
-                
-                print(f"Debug - Product: {product_id}")
-                print(f"Debug - Base Increment: {base_increment}")
-                print(f"Debug - Original Amount: {crypto_amount}")
-                print(f"Debug - Formatted Amount: {crypto_amount_str}")
-                
-                response = client.market_order(
-                    client_order_id=str(uuid.uuid4()),
-                    product_id=product_id,
-                    side='SELL',
-                    base_size=crypto_amount_str  # Amount in crypto
-                )
+                try:
+                    # Get available balance for this currency
+                    available_balance = balance_map.get(base_currency, 0.0)
+                    
+                    if available_balance <= 0:
+                        raise ValueError(f"No available balance for {base_currency}")
+                    
+                    # Get product details for increment precision
+                    product = client.get_product(product_id)
+                    base_increment = float(product.base_increment)
+                    
+                    # Truncate to the nearest increment instead of rounding
+                    crypto_amount = (available_balance // base_increment) * base_increment
+                    
+                    # Convert to string with appropriate precision
+                    crypto_amount_str = '{:.10f}'.format(crypto_amount).rstrip('0').rstrip('.')
+                    
+                    print(f"Selling entire balance:")
+                    print(f"- Product: {product_id}")
+                    print(f"- Available Balance: {available_balance} {base_currency}")
+                    print(f"- Truncated Amount: {crypto_amount_str} {base_currency}")
+                    
+                    response = client.market_order(
+                        client_order_id=str(uuid.uuid4()),
+                        product_id=product_id.split('-')[0]+'-USDC',
+                        side='SELL',
+                        base_size=crypto_amount_str
+                    )
+                except Exception as conversion_error:
+                    print(f"Error during SELL calculations: {str(conversion_error)}")
+                    raise
+                    
             else:  # BUY
+                usd_amount = float(action['amount'])
                 # For BUY: Use USD amount directly, rounded to 2 decimal places
                 usd_amount = round(usd_amount, 2)
+                print(f"Preparing BUY order for {product_id} worth ${usd_amount}")
+                
                 response = client.market_order(
                     client_order_id=str(uuid.uuid4()),
-                    product_id=product_id,
+                    product_id=product_id.split('-')[0]+'-USDC',
                     side='BUY',
                     quote_size=str(usd_amount)  # Amount in USD
                 )
 
-            print(f"Executed trade: {response}")
-            time.sleep(3)
+            print(f"Trade {index} executed successfully: {json.dumps(response.to_dict(), indent=2)}")
+            results.append({
+                "status": "success",
+                "action": action,
+                "response": response.to_dict()
+            })
             
         except Exception as e:
-            print(f"Failed to execute trade action {action}: {str(e)}")
-            print(f"Debug - Full error: {str(e)}")
+            error_msg = f"Failed to execute trade {index} ({action['product_id']} {action['side']}): {str(e)}"
+            print(error_msg)
+            print(f"Full error details: {str(e)}")
+            results.append({
+                "status": "failed",
+                "action": action,
+                "error": str(e)
+            })
+        
+        print(f"\nWaiting 3 seconds before next trade...")
+        time.sleep(3)
+    
+    print("\nTrade execution summary:")
+    print(f"Total trades attempted: {len(trade_actions)}")
+    print(f"Successful trades: {len([r for r in results if r['status'] == 'success'])}")
+    print(f"Failed trades: {len([r for r in results if r['status'] == 'failed'])}")
+    
+    return results
 
 
 

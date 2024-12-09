@@ -13,7 +13,7 @@ def main():
         all_buy_analyses = []  # List to store all analysis responses
         
         # Process market data in batches of 15
-        batch_size = 9
+        batch_size = 5
 
         for i in range(0, len(market_data), batch_size):
             batch = market_data[i:i + batch_size]
@@ -28,9 +28,25 @@ def main():
             # Optional: Add a delay between batches to avoid rate limits
             time.sleep(2)
 
-        data = get_account_balances()
-        sell_op_analysis = get_market_sell_analysis(data)
-        financial_advisory, trade_actions = validate_and_create_actions(all_buy_analyses, sell_op_analysis, data)
+        # Get and process account balances in batches
+        account_data = get_account_balances()
+        account_items = list(account_data.items())  # Convert dict items to list
+        all_sell_analyses = []
+        
+        for i in range(0, len(account_items), batch_size):
+            batch = account_items[i:i + batch_size]
+            print(f"\nProcessing balance batch {i//batch_size + 1} of {(len(account_items) + batch_size - 1)//batch_size}")
+            
+            # Get analysis for current balance batch
+            sell_analysis = get_market_sell_analysis(batch)
+            if sell_analysis:  # Only append if we got a valid response
+                all_sell_analyses.append(sell_analysis)
+            print(f"Sell Batch {i//batch_size + 1} analysis complete")
+            
+            # Optional: Add a delay between batches to avoid rate limits
+            time.sleep(2)
+
+        financial_advisory, trade_actions = validate_and_create_actions(all_buy_analyses, all_sell_analyses, account_data)
         
         # Create logs directory if it doesn't exist
         os.makedirs('ai_logs', exist_ok=True)

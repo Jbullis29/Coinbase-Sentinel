@@ -22,21 +22,23 @@ def get_market_sell_analysis(portfolio_data):
                     3. Consider both unrealized gains and current market conditions
                     4. Prioritize positions showing signs of potential reversal
                     5. Factor in volatility and market sentiment for timing
-                    6. Always include USD value calculations in analysis
+                    6. Always include USDC value calculations in analysis
+                    7. Check available USDC balance before suggesting trades
                     
                     RESPONSE FORMAT (Respond in JSON):
                     {
                         "portfolio_overview": "Brief analysis of current positions and total portfolio value",
-                        "portfolio_total_value": "Sum of all positions in USD",
-                        "usd_per_coin": {
-                            "BTC": "USD value per Bitcoin",
-                            "ETH": "USD value per Ethereum",
+                        "portfolio_total_value": "Sum of all positions in USDC",
+                        "available_usdc": "Current USDC balance available for trading",
+                        "usdc_per_coin": {
+                            "BTC": "USDC value per Bitcoin",
+                            "ETH": "USDC value per Ethereum",
                             // etc for each coin
                         },
                         "positions": [
                             {
                                 "coin": "Symbol",
-                                "usd_value": "current value in USD",
+                                "usdc_value": "current value in USDC",
                                 "percentage_of_portfolio": "what percent of total portfolio this represents"
                             }
                         ],
@@ -45,14 +47,14 @@ def get_market_sell_analysis(portfolio_data):
                                 "coin": "Symbol",
                                 "current_position": {
                                     "quantity": "amount held",
-                                    "entry_price": "average entry price",
-                                    "current_price": "current market price",
-                                    "usd_value": "current value in USD"
+                                    "entry_price": "average entry price in USDC",
+                                    "current_price": "current market price in USDC",
+                                    "usdc_value": "current value in USDC"
                                 },
                                 "action": "sell",
-                                "target_price": "recommended sell price",
+                                "target_price": "recommended sell price in USDC",
                                 "unrealized_profit_pct": "current profit percentage including 1% fee",
-                                "unrealized_profit_usd": "current profit in USD including 1% fee",
+                                "unrealized_profit_usdc": "current profit in USDC including 1% fee",
                                 "reasoning": "explanation including technical and sentiment factors",
                                 "urgency": "low/medium/high"
                             }
@@ -60,7 +62,7 @@ def get_market_sell_analysis(portfolio_data):
                         "market_assessment": "Overall market condition and timing considerations"
                     }
                     
-                    Ensure the response is properly formatted JSON."""
+                    Ensure the response is properly formatted JSON and always acknowledge the available USDC balance."""
             },
             {
                 "role": "user",
