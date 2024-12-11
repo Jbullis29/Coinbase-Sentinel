@@ -1,0 +1,455 @@
+
+
+=== 2024-12-11_15-47-13 ===
+[]
+
+=== 2024-12-11_15-49-38 ===
+[]
+
+=== 2024-12-11_15-52-04 ===
+[]
+
+=== 2024-12-11_15-56-38 ===
+[
+  {
+    "product_id": "CHZ-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 17.12%, RSI: 13.8"
+  },
+  {
+    "product_id": "CVC-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 13.61%, RSI: 5.8"
+  },
+  {
+    "product_id": "TRU-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 13.39%, RSI: 16.0"
+  },
+  {
+    "product_id": "LRC-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 11.86%, RSI: 16.6"
+  },
+  {
+    "product_id": "MASK-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 11.40%, RSI: 13.6"
+  },
+  {
+    "product_id": "PERP-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 11.24%, RSI: 15.9"
+  },
+  {
+    "product_id": "BLZ-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 11.11%, RSI: 10.0"
+  },
+  {
+    "product_id": "QI-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 11.02%, RSI: 9.9"
+  },
+  {
+    "product_id": "APT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 10.38%, RSI: 11.9"
+  },
+  {
+    "product_id": "LIT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 10.34%, RSI: 14.1"
+  },
+  {
+    "product_id": "CTSI-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 10.16%, RSI: 11.6"
+  },
+  {
+    "product_id": "ACH-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 10.13%, RSI: 15.1"
+  },
+  {
+    "product_id": "VOXEL-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 10.01%, RSI: 14.4"
+  },
+  {
+    "product_id": "ZRX-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 9.83%, RSI: 13.1"
+  },
+  {
+    "product_id": "API3-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 9.21%, RSI: 14.2"
+  },
+  {
+    "product_id": "HIGH-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 9.03%, RSI: 18.3"
+  },
+  {
+    "product_id": "BONK-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.93%, RSI: 13.9"
+  },
+  {
+    "product_id": "GTC-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.91%, RSI: 21.1"
+  },
+  {
+    "product_id": "AUCTION-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.86%, RSI: 15.6"
+  },
+  {
+    "product_id": "SEI-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.32%, RSI: 16.5"
+  },
+  {
+    "product_id": "RARE-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.26%, RSI: 8.0"
+  },
+  {
+    "product_id": "METIS-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 8.17%, RSI: 16.2"
+  },
+  {
+    "product_id": "TIA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.96%, RSI: 16.3"
+  },
+  {
+    "product_id": "ZETA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.91%, RSI: 12.0"
+  },
+  {
+    "product_id": "AKT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.82%, RSI: 17.0"
+  },
+  {
+    "product_id": "SPELL-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.68%, RSI: 17.5"
+  },
+  {
+    "product_id": "KAVA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.66%, RSI: 14.1"
+  },
+  {
+    "product_id": "ZEC-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.53%, RSI: 15.4"
+  },
+  {
+    "product_id": "ROSE-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.50%, RSI: 15.7"
+  },
+  {
+    "product_id": "ANKR-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.38%, RSI: 16.6"
+  },
+  {
+    "product_id": "ADA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.35%, RSI: 13.6"
+  },
+  {
+    "product_id": "IMX-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.35%, RSI: 11.2"
+  },
+  {
+    "product_id": "DEGEN-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.24%, RSI: 13.6"
+  },
+  {
+    "product_id": "DAR-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.22%, RSI: 18.2"
+  },
+  {
+    "product_id": "OSMO-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.08%, RSI: 16.1"
+  },
+  {
+    "product_id": "FIS-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 7.04%, RSI: 3.0"
+  },
+  {
+    "product_id": "SNX-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.92%, RSI: 21.8"
+  },
+  {
+    "product_id": "FET-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.90%, RSI: 15.4"
+  },
+  {
+    "product_id": "SKL-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.89%, RSI: 16.4"
+  },
+  {
+    "product_id": "OCEAN-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.80%, RSI: 21.7"
+  },
+  {
+    "product_id": "ARB-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.75%, RSI: 17.1"
+  },
+  {
+    "product_id": "NCT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.69%, RSI: 10.3"
+  },
+  {
+    "product_id": "GRT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.42%, RSI: 13.2"
+  },
+  {
+    "product_id": "SEAM-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.41%, RSI: 22.4"
+  },
+  {
+    "product_id": "WIF-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.35%, RSI: 13.5"
+  },
+  {
+    "product_id": "DIA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.34%, RSI: 20.4"
+  },
+  {
+    "product_id": "GLM-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.32%, RSI: 14.2"
+  },
+  {
+    "product_id": "DASH-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.23%, RSI: 22.3"
+  },
+  {
+    "product_id": "OP-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 6.07%, RSI: 15.6"
+  },
+  {
+    "product_id": "MINA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.97%, RSI: 14.2"
+  },
+  {
+    "product_id": "BIGTIME-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.91%, RSI: 18.3"
+  },
+  {
+    "product_id": "C98-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.80%, RSI: 21.6"
+  },
+  {
+    "product_id": "CBETH-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.53%, RSI: 13.4"
+  },
+  {
+    "product_id": "GNO-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.53%, RSI: 11.9"
+  },
+  {
+    "product_id": "RPL-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.45%, RSI: 7.6"
+  },
+  {
+    "product_id": "CTX-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.42%, RSI: 20.3"
+  },
+  {
+    "product_id": "ETH-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.41%, RSI: 10.8"
+  },
+  {
+    "product_id": "RAD-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.37%, RSI: 26.1"
+  },
+  {
+    "product_id": "LDO-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 5.10%, RSI: 23.4"
+  },
+  {
+    "product_id": "TVK-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.96%, RSI: 21.5"
+  },
+  {
+    "product_id": "G-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.95%, RSI: 13.0"
+  },
+  {
+    "product_id": "GHST-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.91%, RSI: 11.0"
+  },
+  {
+    "product_id": "BOBA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.88%, RSI: 9.4"
+  },
+  {
+    "product_id": "SAFE-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.75%, RSI: 15.1"
+  },
+  {
+    "product_id": "GST-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.69%, RSI: 21.0"
+  },
+  {
+    "product_id": "SWELL-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.58%, RSI: 19.0"
+  },
+  {
+    "product_id": "FORT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.43%, RSI: 3.0"
+  },
+  {
+    "product_id": "AMP-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 4.28%, RSI: 12.8"
+  },
+  {
+    "product_id": "MDT-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 3.70%, RSI: 4.9"
+  },
+  {
+    "product_id": "LOKA-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 3.43%, RSI: 22.8"
+  },
+  {
+    "product_id": "WCFG-USD",
+    "side": "BUY",
+    "amount": 25,
+    "reason": "Buy score: 70/100. Change: 0.76%, RSI: 15.2"
+  }
+]
+
+=== 2024-12-11_16-06-31 ===
+[]
+
+=== 2024-12-11_16-11-09 ===
+[]
+
+=== 2024-12-11_16-14-12 ===
+[]
+
+=== 2024-12-11_16-17-52 ===
+[]
+
+=== 2024-12-11_16-22-54 ===
+[]
