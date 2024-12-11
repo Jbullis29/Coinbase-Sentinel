@@ -212,7 +212,6 @@ def get_market_data(portfolio_only=False):
     # Sort and limit only for non-portfolio data
     if not portfolio_only:
         filtered_market_data.sort(key=lambda x: x['volume_24h'], reverse=True)
-        filtered_market_data = filtered_market_data[:30]
     
     # Get candle data
     for product in filtered_market_data:
@@ -274,9 +273,7 @@ def get_candles_public(product):
 
 def execute_trade_actions(trade_actions):
     """
-    Execute trade actions using the provided market_order function.
-    For SELL orders: Sells entire available balance
-    For BUY orders: Uses specified USD amount
+    Execute trade actions with balance checks
     """
     results = []
     
@@ -293,6 +290,10 @@ def execute_trade_actions(trade_actions):
         for account in accounts['accounts']
     }
     
+    # Check USDC balance for buy orders
+    usdc_balance = balance_map.get('USDC', 0.0)
+    print(f"Available USDC balance: {usdc_balance}")
+    
     for index, action in enumerate(trade_actions, 1):
         print(f"\nProcessing trade {index} of {len(trade_actions)}:")
         print(f"Action details: {json.dumps(action, indent=2)}")
@@ -300,52 +301,37 @@ def execute_trade_actions(trade_actions):
         try:
             product_id = str(action['product_id'])
             side = str(action['side'])
-            base_currency = product_id.split('-')[0]  # e.g., 'BTC' from 'BTC-USD'
+            base_currency = product_id.split('-')[0]
 
-            if side.upper() == 'SELL':
-                try:
-                    # Get available balance for this currency
-                    available_balance = balance_map.get(base_currency, 0.0)
-                    
-                    if available_balance <= 0:
-                        raise ValueError(f"No available balance for {base_currency}")
-                    
-                    # Get product details for increment precision
-                    product = client.get_product(product_id)
-                    base_increment = float(product.base_increment)
-                    
-                    # Truncate to the nearest increment instead of rounding
-                    crypto_amount = (available_balance // base_increment) * base_increment
-                    
-                    # Convert to string with appropriate precision
-                    crypto_amount_str = '{:.10f}'.format(crypto_amount).rstrip('0').rstrip('.')
-                    
-                    print(f"Selling entire balance:")
-                    print(f"- Product: {product_id}")
-                    print(f"- Available Balance: {available_balance} {base_currency}")
-                    print(f"- Truncated Amount: {crypto_amount_str} {base_currency}")
-                    
-                    response = client.market_order(
-                        client_order_id=str(uuid.uuid4()),
-                        product_id=product_id.split('-')[0]+'-USDC',
-                        side='SELL',
-                        base_size=crypto_amount_str
-                    )
-                except Exception as conversion_error:
-                    print(f"Error during SELL calculations: {str(conversion_error)}")
-                    raise
-                    
-            else:  # BUY
-                usd_amount = float(action['amount'])
-                # For BUY: Use USD amount directly, rounded to 2 decimal places
-                usd_amount = round(usd_amount, 2)
-                print(f"Preparing BUY order for {product_id} worth ${usd_amount}")
+            if side.upper() == 'BUY':
+                # Check if we have enough USDC for this buy
+                required_usdc = float(action['amount'])
+                if required_usdc > usdc_balance:
+                    raise ValueError(f"Insufficient USDC balance. Required: {required_usdc}, Available: {usdc_balance}")
+                usdc_balance -= required_usdc  # Deduct from available balance for next trades
                 
                 response = client.market_order(
                     client_order_id=str(uuid.uuid4()),
                     product_id=product_id.split('-')[0]+'-USDC',
                     side='BUY',
-                    quote_size=str(usd_amount)  # Amount in USD
+                    quote_size=str(required_usdc)
+                )
+                
+            else:  # SELL
+                available_balance = balance_map.get(base_currency, 0.0)
+                if available_balance <= 0:
+                    raise ValueError(f"No available balance for {base_currency}")
+                
+                product = client.get_product(product_id)
+                base_increment = float(product.base_increment)
+                crypto_amount = (available_balance // base_increment) * base_increment
+                crypto_amount_str = '{:.10f}'.format(crypto_amount).rstrip('0').rstrip('.')
+                
+                response = client.market_order(
+                    client_order_id=str(uuid.uuid4()),
+                    product_id=product_id.split('-')[0]+'-USDC',
+                    side='SELL',
+                    base_size=crypto_amount_str
                 )
 
             print(f"Trade {index} executed successfully: {json.dumps(response.to_dict(), indent=2)}")
@@ -358,20 +344,19 @@ def execute_trade_actions(trade_actions):
         except Exception as e:
             error_msg = f"Failed to execute trade {index} ({action['product_id']} {action['side']}): {str(e)}"
             print(error_msg)
-            print(f"Full error details: {str(e)}")
             results.append({
                 "status": "failed",
                 "action": action,
                 "error": str(e)
             })
         
-        print(f"\nWaiting 3 seconds before next trade...")
         time.sleep(3)
     
     print("\nTrade execution summary:")
     print(f"Total trades attempted: {len(trade_actions)}")
     print(f"Successful trades: {len([r for r in results if r['status'] == 'success'])}")
     print(f"Failed trades: {len([r for r in results if r['status'] == 'failed'])}")
+    print(f"Remaining USDC balance: {usdc_balance}")
     
     return results
 

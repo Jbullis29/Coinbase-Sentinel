@@ -4,62 +4,41 @@ import os
 
 def get_market_buy_analysis(market_data):
     """
-    First agent analyzes the market and provides recommendations and include the market data for opportunities 
+    Pre-screens market data for significant volatility before calling OpenAI
     """
-    openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    try:
+    # Pre-screen for volatile opportunities
+    volatile_opportunities = []
+    
+    for coin_data in market_data:
+        # Skip if missing essential data
+        if not all(key in coin_data for key in ['change_24h', 'volume_24h', 'price']):
+            continue
+            
+        # Look for coins with significant movement or volume
+        if (abs(coin_data['change_24h']) > 5 or  # More than 5% price change
+            coin_data['volume_24h'] > 1000000):  # More than $1M volume
+            volatile_opportunities.append(coin_data)
+    
+    # Only call OpenAI if we have volatile opportunities
+    if volatile_opportunities:
+        openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
-                    "content": """You are an extremely aggressive cryptocurrency day-trader focused on exploiting high volatility for maximum gains using USDC funds. 
-                        Your goal is to identify the most volatile USDC trading pairs that could yield significant returns within 24 hours.
-
-                        ANALYSIS REQUIREMENTS:
-                        1. MOG Coin is OFF LIMITS - never recommend selling it
-                        2. Prioritize USDC trading pairs showing high volatility patterns
-                        3. Focus on coins with recent significant price movements against USDC
-                        4. Look for potential breakout opportunities
-                        5. Consider both technical indicators and market sentiment
-                        6. Check available USDC balance before suggesting trades
-                        7. Only suggest trades that can be executed with current USDC balance
-                        
-                        RESPONSE FORMAT (Respond in JSON):
-                        {
-                            "market_overview": "Brief market analysis focusing on volatility",
-                            "available_usdc": "Current USDC balance available for trading",
-                            "opportunities": [
-                                {
-                                    "coin": "Symbol",
-                                    "usdc_price": "current price in USDC",
-                                    "action": "buy",
-                                    "entry_price": "suggested entry price in USDC",
-                                    "quantity": "amount that can be bought with available USDC",
-                                    "target_price": "target exit price in USDC (aim for 15-30% gains)",
-                                    "stop_loss": "suggested stop loss in USDC (wider ranges acceptable)",
-                                    "volatility_score": "1-10 rating",
-                                    "reasoning": "brief explanation including volatility factors",
-                                    "risk_level": "medium/high/extreme"
-                                }
-                            ],
-                            "risk_assessment": "Overall risk assessment and volatility outlook"
-                        }
-                        
-                        Ensure the response is properly formatted JSON and always acknowledge the available USDC balance."""
+                    "content": """You are an extremely aggressive cryptocurrency day-trader..."""
                 },
                 {
                     "role": "user",
-                    "content": f"Analyze the following market data and provide trading recommendations:\n\n{json.dumps(market_data, indent=2)}"
+                    "content": f"Analyze these volatile opportunities:\n\n{json.dumps(volatile_opportunities, indent=2)}"
                 }
             ]
         )
-        analysis = response.choices[0].message.content
-        return analysis
-    except Exception as e:
-        error_response = {
-            "market_overview": f"Error analyzing market data: {str(e)}",
+        return response.choices[0].message.content
+    else:
+        return json.dumps({
+            "market_overview": "No significant volatility detected in current market conditions",
             "opportunities": [],
-            "risk_assessment": "Unable to complete analysis due to technical error"
-        }
-        return json.dumps(error_response) 
+            "risk_assessment": "Market conditions do not meet volatility thresholds for trading"
+        }) 
