@@ -125,7 +125,7 @@ def analyze_buy_opportunities(market_data, buy_threshold=-5.0):
             
     return buy_opportunities
 
-def analyze_sell_opportunities(account_data, sell_threshold=5.0):
+def analyze_sell_opportunities(account_data, sell_threshold=3.0):
     """Analyze holdings for sell opportunities using multiple indicators"""
     all_opportunities = []
     print(f"\nAnalyzing {len(account_data)} holdings for sell opportunities...")
@@ -173,31 +173,47 @@ def analyze_sell_opportunities(account_data, sell_threshold=5.0):
             # Scoring system (0-100)
             score = 0
             
-            # Log scoring details
+            # Profit threshold scoring (max 30 points)
             if profit_percentage >= sell_threshold:
                 score += 30
                 print("✓ Profit threshold met (+30 points)")
+            elif profit_percentage >= (sell_threshold * 0.5):  # Half of threshold still gets some points
+                score += 15
+                print("✓ Partial profit threshold met (+15 points)")
             
-            if rsi is not None and rsi > 70:
-                score += 25
-                print("RSI overbought condition met (+25 points)")
+            # RSI scoring (max 25 points)
+            if rsi is not None:
+                if rsi > 70:
+                    score += 25
+                    print("✓ RSI overbought condition met (+25 points)")
+                elif rsi > 65:  # Added intermediate condition
+                    score += 15
+                    print("✓ RSI approaching overbought (+15 points)")
             
-            if ma20 and ma50 and current_price > ma20 > ma50:
-                score += 25
-                print("Moving average trend met (+25 points)")
+            # Moving average trend scoring (max 25 points)
+            if ma20 and ma50 and current_price:
+                if current_price > ma20 > ma50:
+                    score += 25
+                    print("✓ Strong uptrend detected (+25 points)")
+                elif current_price > ma20:  # Added intermediate condition
+                    score += 15
+                    print("✓ Above MA20 (+15 points)")
             
+            # Price momentum scoring (max 20 points)
             if candle_data and len(candle_data) > 1:
                 prev_price = candle_data[-2]['close']
                 price_momentum = (current_price - prev_price) / prev_price * 100
-                if price_momentum > 2:
+                if price_momentum > 1.5:  # Reduced from 2.0
                     score += 20
-                    print("Price momentum criterion met (+20 points)")
+                    print("✓ Strong price momentum (+20 points)")
+                elif price_momentum > 0.75:  # Added intermediate condition
+                    score += 10
+                    print("✓ Moderate price momentum (+10 points)")
             
             print(f"Final Score: {score}/100")
             
-            # If score is high enough, add to opportunities list
-            if score >= 60:
-                # Create reason string with safer formatting
+            # Lower the minimum score threshold
+            if score >= 50:  # Reduced from 60
                 reason = f'Sell score: {score}/100. Profit: {profit_percentage:.1f}%'
                 if rsi is not None:
                     reason += f', RSI: {rsi:.1f}'
@@ -228,14 +244,29 @@ def analyze_sell_opportunities(account_data, sell_threshold=5.0):
 def main():
     while True:
         try:
-            print("\nFetching market data...")
-            market_data = get_market_data()[0]
-            
+            # First check USDC balance
+            accounts = client.get_accounts()
+            usdc_balance = 0
+            for account in accounts['accounts']:
+                if account['currency'] == 'USDC':
+                    usdc_balance = float(account['available_balance']['value'])
+                    break
+
+            print(f"\nCurrent USDC balance: {usdc_balance}")
+
+            # Get account data for existing holdings first
             print("Fetching account data...")
             account_data = get_account_balances()
             
-            print("Analyzing buy opportunities...")
-            buy_actions = analyze_buy_opportunities(market_data)
+            # Only fetch market data if we have sufficient USDC balance
+            buy_actions = []
+            if usdc_balance >= 25:  # Minimum USDC balance threshold
+                print("\nFetching market data for new opportunities...")
+                market_data = get_market_data()[0]
+                print("Analyzing buy opportunities...")
+                buy_actions = analyze_buy_opportunities(market_data)
+            else:
+                print("\nInsufficient USDC balance for new purchases. Skipping buy analysis.")
             
             print("Analyzing sell opportunities...")
             sell_actions = analyze_sell_opportunities(account_data)
@@ -260,8 +291,17 @@ def main():
         except Exception as e:
             print(f"Error in main loop: {str(e)}")
             
-        print("\nWaiting for next iteration...")
-        time.sleep(60)  # Wait for 1 hour
+        print("\nWaiting for next candle period...")
+        # Wait for 15 minutes, but check every minute for clean 15-minute marks
+        current_time = datetime.now()
+        minutes_to_next_15 = 15 - (current_time.minute % 15)
+        sleep_time = minutes_to_next_15 * 60 - current_time.second
+        
+        # Sleep in 1-minute intervals
+        while sleep_time > 0:
+            time.sleep(min(60, sleep_time))  # Sleep for 1 minute or remaining time
+            sleep_time -= 60
+            print(f"Time until next analysis: {sleep_time//60} minutes")
 
 if __name__ == '__main__':
     main()

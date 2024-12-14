@@ -235,18 +235,17 @@ def get_candles_public(product):
     Get candle data using Coinbase's public API endpoint.
     """
     try:
-        # Use the public endpoint
         url = f"https://api.exchange.coinbase.com/products/{product}/candles"
         
-        # Parameters for the request
+        # Changed to 15-minute candles (900 seconds) and 2 days of data
         params = {
-            'granularity': 3600,  # 1 hour in seconds
-            'start': (datetime.now() - timedelta(days=7)).isoformat(),
+            'granularity': 900,  # 15 minutes in seconds
+            'start': (datetime.now() - timedelta(days=2)).isoformat(),
             'end': datetime.now().isoformat()
         }
         
         response = requests.get(url, params=params)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        response.raise_for_status()
         
         candles = response.json()
         
